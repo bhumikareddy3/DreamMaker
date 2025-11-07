@@ -2,25 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { generateBrandKit } from "@/lib/gemini";
+import { useBrandStore } from "@/store/brand-store";
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { setBrandData } = useBrandStore();
 
   const handleGenerate = async () => {
     if (!prompt) return;
     setIsLoading(true);
+    setError(null);
 
-    // Simulate an API call. In a real app, you'd fetch('/api/generate').
-    // The response could then be stored in a shared state or passed to the preview page.
-    console.log("Simulating generation for prompt:", prompt);
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    setIsLoading(false);
-    // Navigate to the preview page after generation
-    navigate("/preview");
+    try {
+      const result = await generateBrandKit(prompt);
+      setBrandData(result);
+      navigate("/preview");
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,15 +50,19 @@ export default function HomePage() {
           placeholder="e.g., An AI fitness coach for busy professionals that creates personalized workout plans."
           className="min-h-[120px] resize-none p-4 text-base"
         />
+        {error && (
+          <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <p>{error}</p>
+          </div>
+        )}
         <Button
           size="lg"
           className="w-full text-lg font-semibold"
           onClick={handleGenerate}
           disabled={isLoading || !prompt}
         >
-          {isLoading && (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          )}
+          {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
           Generate My Brand
         </Button>
       </div>
